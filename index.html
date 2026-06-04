@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market AI Monitor</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { background-color: #0f172a; color: #f8fafc; }</style>
+</head>
+<body class="p-4 max-w-md mx-auto font-sans">
+
+    <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-3">
+        <h1 class="text-xl font-bold text-emerald-400">📈 PWA AI Monitor</h1>
+        <span id="status-dot" class="h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
+    </div>
+
+    <!-- API Keys Setup -->
+    <div class="bg-slate-800 p-4 rounded-xl mb-4 shadow-lg border border-slate-700">
+        <h2 class="text-sm font-semibold mb-2 text-slate-300">🔑 API Configuration</h2>
+        <input type="password" id="gemini-key" placeholder="Gemini API Key" class="w-full p-2 mb-2 rounded bg-slate-900 border border-slate-600 text-sm focus:outline-none focus:border-emerald-500">
+        <input type="password" id="market-key" placeholder="TwelveData API Key" class="w-full p-2 rounded bg-slate-900 border border-slate-600 text-sm focus:outline-none focus:border-emerald-500">
+    </div>
+
+    <!-- Portfolio Tracking Pool -->
+    <div class="bg-slate-800 p-4 rounded-xl mb-4 shadow-lg border border-slate-700">
+        <h2 class="text-sm font-semibold mb-3 text-slate-300">📊 Ticker Tracking Pool</h2>
+        <div class="flex gap-2 mb-3">
+            <input type="text" id="new-ticker" placeholder="e.g. AAPL, CIBR, CNDX" class="flex-1 p-2 rounded bg-slate-900 border border-slate-600 uppercase font-bold text-center text-sm">
+            <button onclick="addTicker()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-bold px-4 rounded text-sm transition">+ ADD</button>
+        </div>
+        <div id="ticker-list" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- Control Systems -->
+    <div class="flex gap-3 mb-4">
+        <button onclick="toggleEngine(true)" id="btn-start" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow text-sm">▶️ Start Sync</button>
+        <button onclick="toggleEngine(false)" id="btn-stop" class="flex-1 bg-slate-700 text-slate-400 font-bold py-3 rounded-xl shadow text-sm cursor-not-allowed" disabled>⏸️ Stop</button>
+    </div>
+
+    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-500 font-mono block mb-1">SYSTEM INSTANCE LOG</span>
+        <div id="console-output" class="h-32 overflow-y-auto font-mono text-xs text-emerald-500 space-y-1">
+            System ready. Set configuration keys to active state.
+        </div>
+    </div>
+
+    <script>
+        let tickers = ['AAPL', 'MSFT'];
+
+        window.onload = () => {
+            if(localStorage.getItem('tickers')) tickers = JSON.parse(localStorage.getItem('tickers'));
+            if(localStorage.getItem('gemini-key')) document.getElementById('gemini-key').value = localStorage.getItem('gemini-key');
+            if(localStorage.getItem('market-key')) document.getElementById('market-key').value = localStorage.getItem('market-key');
+            renderTickers();
+            registerServiceWorker();
+        };
+
+        function log(msg) {
+            document.getElementById('console-output').innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+        }
+
+        function renderTickers() {
+            const list = document.getElementById('ticker-list');
+            list.innerHTML = '';
+            tickers.forEach(t => {
+                list.innerHTML += `<span class="inline-flex items-center bg-slate-700 px-3 py-1 rounded-full text-xs font-bold">\${t}<button onclick="removeTicker('\${t}')" class="ml-2 text-red-400 font-black">×</button></span>`;
+            });
+            localStorage.setItem('tickers', JSON.stringify(tickers));
+            syncDataToWorker();
+        }
+
+        function addTicker() {
+            const input = document.getElementById('new-ticker');
+            const t = input.value.trim().toUpperCase();
+            if(t && !tickers.includes(t)) { tickers.push(t); renderTickers(); input.value = ''; }
+        }
+
+        function removeTicker(t) { tickers = tickers.filter(item => item !== t); renderTickers(); }
+
+        function syncDataToWorker() {
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SYNC_CONFIG',
+                    geminiKey: document.getElementById('gemini-key').value.trim(),
+                    marketKey: document.getElementById('market-key').value.trim(),
+                    tickers: tickers
+                });
+            }
+        }
+
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const reg = await navigator.serviceWorker.register('sw.js');
+                    log("⚙️ Service Worker safely registered.");
+                    Notification.requestPermission();
+                } catch (err) {
+                    log(`❌ Registration failed: \${err.message}`);
+                }
+            }
+        }
+
+        function toggleEngine(active) {
+            document.getElementById('status-dot').className = active ? "h-3 w-3 rounded-full bg-emerald-500 animate-pulse" : "h-3 w-3 rounded-full bg-red-500 animate-pulse";
+            document.getElementById('btn-start').disabled = active;
+            document.getElementById('btn-stop').disabled = !active;
+            document.getElementById('btn-start').className = active ? "flex-1 bg-slate-700 text-slate-500 py-3 rounded-xl cursor-not-allowed text-sm font-bold" : "flex-1 bg-blue-500 text-white py-3 rounded-xl text-sm font-bold";
+            document.getElementById('btn-stop').className = !active ? "flex-1 bg-slate-700 text-slate-400 py-3 rounded-xl cursor-not-allowed text-sm font-bold" : "flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold";
+            
+            // Save current keys
+            localStorage.setItem('gemini-key', document.getElementById('gemini-key').value.trim());
+            localStorage.setItem('market-key', document.getElementById('market-key').value.trim());
+            syncDataToWorker();
+
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: active ? 'START_LOOP' : 'STOP_LOOP' });
+                log(active ? "🚀 Background monitoring loop active." : "🛑 Background framework paused.");
+            }
+        }
+    </script>
+</body>
+</html>
