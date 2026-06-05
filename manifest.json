@@ -1,16 +1,22 @@
 {
-  "short_name": "AIMonitor",
-  "name": "Market AI Monitor System",
+  "name": "StockWatch AI Pro Platform",
+  "short_name": "StockWatch",
+  "description": "Live stock & ETF tracker with Dual AI-powered news analysis Matrix.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme-color": "#0a0a0f",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/4256/4256900.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2422/2422796.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2422/2422796.png",
       "type": "image/png",
       "sizes": "512x512"
     }
-  ],
-  "start_url": "index.html",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
