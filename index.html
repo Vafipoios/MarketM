@@ -1,123 +1,334 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market AI Monitor</title>
-    <link rel="manifest" href="manifest.json">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>body { background-color: #0f172a; color: #f8fafc; }</style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="StockWatch AI"/>
+<title>StockWatch AI Pro</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f; --card: #111119; --border: #1e1e2e;
+    --accent: #00d4ff; --accent2: #7c3aed; --green: #00e676; --red: #ff1744;
+  }
+  body { background-color: var(--bg); color: #e8e8f0; font-family: 'Syne', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .tab-active { background-color: var(--card); color: #fff; border-bottom: 2px solid var(--accent); }
+</style>
 </head>
-<body class="p-4 max-w-md mx-auto font-sans">
+<body class="max-w-md mx-auto p-0 min-h-screen flex flex-col justify-between">
 
-    <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-3">
-        <h1 class="text-xl font-bold text-emerald-400">📈 PWA AI Monitor</h1>
-        <span id="status-dot" class="h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
-    </div>
+  <div class="fixed top-[-100px] right-[-100px] w-72 height-72 bg-purple-600/10 rounded-full blur-[80px] pointer-events-none"></div>
+  <div class="fixed bottom-[-50px] left-[-50px] w-64 height-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
-    <!-- API Keys Setup -->
-    <div class="bg-slate-800 p-4 rounded-xl mb-4 shadow-lg border border-slate-700">
-        <h2 class="text-sm font-semibold mb-2 text-slate-300">🔑 API Configuration</h2>
-        <input type="password" id="gemini-key" placeholder="Gemini API Key" class="w-full p-2 mb-2 rounded bg-slate-900 border border-slate-600 text-sm focus:outline-none focus:border-emerald-500">
-        <input type="password" id="market-key" placeholder="TwelveData API Key" class="w-full p-2 rounded bg-slate-900 border border-slate-600 text-sm focus:outline-none focus:border-emerald-500">
-    </div>
-
-    <!-- Portfolio Tracking Pool -->
-    <div class="bg-slate-800 p-4 rounded-xl mb-4 shadow-lg border border-slate-700">
-        <h2 class="text-sm font-semibold mb-3 text-slate-300">📊 Ticker Tracking Pool</h2>
-        <div class="flex gap-2 mb-3">
-            <input type="text" id="new-ticker" placeholder="e.g. AAPL, CIBR, CNDX" class="flex-1 p-2 rounded bg-slate-900 border border-slate-600 uppercase font-bold text-center text-sm">
-            <button onclick="addTicker()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-bold px-4 rounded text-sm transition">+ ADD</button>
+  <div class="w-full flex flex-col flex-grow">
+    <header class="sticky top-0 bg-[#0a0a0f]/90 backdrop-blur-md p-4 border-b border-slate-800 z-50">
+      <div class="flex justify-between items-center mb-3">
+        <div class="flex items-center gap-2">
+          <div class="p-1.5 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-lg text-sm">🔮</div>
+          <div>
+            <h1 class="text-base font-extrabold tracking-tight">StockWatch AI</h1>
+            <p class="text-[9px] text-cyan-400 font-mono tracking-widest uppercase">Dual-Engine Live</p>
+          </div>
         </div>
-        <div id="ticker-list" class="flex flex-wrap gap-2"></div>
-    </div>
-
-    <!-- Control Systems -->
-    <div class="flex gap-3 mb-4">
-        <button onclick="toggleEngine(true)" id="btn-start" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow text-sm">▶️ Start Sync</button>
-        <button onclick="toggleEngine(false)" id="btn-stop" class="flex-1 bg-slate-700 text-slate-400 font-bold py-3 rounded-xl shadow text-sm cursor-not-allowed" disabled>⏸️ Stop</button>
-    </div>
-
-    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-        <span class="text-xs text-slate-500 font-mono block mb-1">SYSTEM INSTANCE LOG</span>
-        <div id="console-output" class="h-32 overflow-y-auto font-mono text-xs text-emerald-500 space-y-1">
-            System ready. Set configuration keys to active state.
+        <div class="flex gap-2">
+          <button onclick="refreshAll()" class="p-2 bg-slate-900 border border-slate-800 rounded-lg text-xs hover:border-slate-700">🔄</button>
+          <span id="syncDot" class="h-2.5 w-2.5 rounded-full bg-red-500 my-auto animate-pulse"></span>
         </div>
+      </div>
+
+      <div class="flex bg-slate-950 p-1 rounded-xl text-xs font-mono border border-slate-900">
+        <button id="t-port" onclick="switchTab('port')" class="flex-1 py-2 text-center rounded-lg tab-active text-slate-400">PORTFOLIO</button>
+        <button id="t-news" onclick="switchTab('news')" class="flex-1 py-2 text-center rounded-lg text-slate-500">AI DEEP DIVE</button>
+        <button id="t-setup" onclick="switchTab('setup')" class="flex-1 py-2 text-center rounded-lg text-slate-500">SETUP</button>
+      </div>
+    </header>
+
+    <main class="p-4 flex-grow">
+      <div id="p-port" class="space-y-4 tab-page">
+        <div class="flex justify-between items-center">
+          <h2 class="text-xs uppercase tracking-wider font-mono text-slate-500">Watchlist</h2>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">TwelveData Live</span>
+        </div>
+        <div id="stocksGrid" class="space-y-2"></div>
+        <button onclick="openModal()" class="w-full py-3 border border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl text-xs text-slate-500 transition-all font-mono">+ Add Stock or ETF</button>
+      </div>
+
+      <div id="p-news" class="space-y-4 tab-page hidden">
+        <div class="p-4 rounded-xl bg-gradient-to-br from-purple-900/20 to-cyan-900/10 border border-purple-500/30">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-purple-400 flex items-center gap-1">🧠 Claude 3.5 Analytical Core</span>
+            <span class="text-[9px] font-mono bg-cyan-900/30 text-cyan-400 px-2 py-0.5 rounded">Scraped via Gemini</span>
+          </div>
+          <div id="claudeAnalysis" class="text-xs text-slate-300 leading-relaxed font-mono">No analysis triggered yet. Tap Refresh to coordinate the AI engines.</div>
+        </div>
+        <h2 class="text-xs uppercase tracking-wider font-mono text-slate-500">Contextual Framework Pipeline</h2>
+        <div id="rawNewsList" class="space-y-2"></div>
+      </div>
+
+      <div id="p-setup" class="space-y-4 tab-page hidden">
+        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-3">
+          <h3 class="text-xs font-mono text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-1">API Security Panel</h3>
+          <div>
+            <label class="text-[10px] text-slate-500 block mb-1 font-mono">TWELVEDATA API KEY (Market Data)</label>
+            <input type="password" id="keyTwelve" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono text-xs focus:border-cyan-500 outline-none" placeholder="Paste Key..."/>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-500 block mb-1 font-mono">GEMINI AI API KEY (Web Scouter)</label>
+            <input type="password" id="keyGemini" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono text-xs focus:border-cyan-500 outline-none" placeholder="Paste Key..."/>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-500 block mb-1 font-mono">ANTHROPIC CLAUDE API KEY (Quant Analyst)</label>
+            <input type="password" id="keyClaude" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono text-xs focus:border-cyan-500 outline-none" placeholder="Paste Key..."/>
+          </div>
+          <button onclick="saveConfig()" class="w-full py-2 bg-gradient-to-r from-purple-600 to-cyan-500 font-bold rounded-lg text-xs shadow-lg">SAVE KEY CONFIGURATION</button>
+        </div>
+
+        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-3">
+          <h3 class="text-xs font-mono text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-1">App Parameters</h3>
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-xs font-bold">Push Notifications</p>
+              <p class="text-[10px] text-slate-500 font-mono">Background worker alert triggers</p>
+            </div>
+            <input type="checkbox" id="cfgNotif" class="w-4 h-4 accent-purple-500"/>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="addModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-end justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-t-2xl p-4 space-y-3 translate-y-10 transition-transform duration-300" id="modalCard">
+      <div class="w-12 h-1 bg-slate-800 rounded mx-auto mb-1"></div>
+      <h3 class="text-sm font-bold">Add Global Asset Target</h3>
+      <input type="text" id="modalSearch" oninput="debouncedSearch(this.value)" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl font-mono text-xs outline-none focus:border-purple-500" placeholder="Type ticker (e.g., AAPL, CIBR, WIG20)..."/>
+      <div id="searchResults" class="max-height-48 overflow-y-auto space-y-1 font-mono text-xs"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal()" class="px-4 py-2 bg-slate-950 text-slate-400 text-xs rounded-lg font-mono">Cancel</button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        let tickers = ['AAPL', 'MSFT'];
+  <script>
+    let state = {
+      tickers: ['AAPL', 'MSFT', 'CIBR', 'WIG20'],
+      prices: {},
+      keys: { twelve: '', gemini: '', claude: '' },
+      searchTimeout: null
+    };
 
-        window.onload = () => {
-            if(localStorage.getItem('tickers')) tickers = JSON.parse(localStorage.getItem('tickers'));
-            if(localStorage.getItem('gemini-key')) document.getElementById('gemini-key').value = localStorage.getItem('gemini-key');
-            if(localStorage.getItem('market-key')) document.getElementById('market-key').value = localStorage.getItem('market-key');
-            renderTickers();
-            registerServiceWorker();
-        };
+    const popularStocks = [
+      { t: 'AAPL', n: 'Apple Inc.' }, { t: 'MSFT', n: 'Microsoft Corp.' },
+      { t: 'CIBR', n: 'Cybersecurity UCITS ETF' }, { t: 'CNDX', n: 'Nasdaq 100 UCITS ETF' },
+      { t: 'WIG20', n: 'GPW Polish Blue-Chips' }, { t: 'mWIG40', n: 'GPW Mid-Caps Index' }
+    ];
 
-        function log(msg) {
-            document.getElementById('console-output').innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+    window.onload = () => {
+      const savedState = localStorage.getItem('sw_pro_state');
+      if (savedState) {
+        state = { ...state, ...JSON.parse(savedState) };
+      }
+      document.getElementById('keyTwelve').value = state.keys.twelve || '';
+      document.getElementById('keyGemini').value = state.keys.gemini || '';
+      document.getElementById('keyClaude').value = state.keys.claude || '';
+      renderPortfolio();
+      initServiceWorker();
+    };
+
+    function initServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => {
+            document.getElementById('syncDot').className = "h-2.5 w-2.5 rounded-full bg-emerald-500 my-auto animate-pulse";
+            navigator.serviceWorker.ready.then(() => syncWorkerMemory());
+          })
+          .catch(() => {
+            document.getElementById('syncDot').className = "h-2.5 w-2.5 rounded-full bg-red-500 my-auto";
+          });
+      }
+    }
+
+    function syncWorkerMemory() {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SYNC_MEMORY',
+          payload: { keys: state.keys, tickers: state.tickers }
+        });
+      }
+    }
+
+    function switchTab(t) {
+      document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`p-${t}`).classList.remove('hidden');
+      document.querySelectorAll('header font-mono button').forEach(b => b.classList.remove('tab-active'));
+      document.getElementById(`t-${t}`).classList.add('tab-active');
+    }
+
+    function saveConfig() {
+      state.keys.twelve = document.getElementById('keyTwelve').value.trim();
+      state.keys.gemini = document.getElementById('keyGemini').value.trim();
+      state.keys.claude = document.getElementById('keyClaude').value.trim();
+      localStorage.setItem('sw_pro_state', JSON.stringify(state));
+      syncWorkerMemory();
+      alert('Configurations secured on phone hardware memory.');
+      refreshAll();
+    }
+
+    async function refreshAll() {
+      if (!state.keys.twelve) return alert("Please set your TwelveData API Key first.");
+      const dot = document.getElementById('syncDot');
+      dot.className = "h-2.5 w-2.5 rounded-full bg-amber-500 my-auto animate-spin";
+      
+      try {
+        const symbols = state.tickers.join(',');
+        const res = await fetch(`https://api.twelvedata.com/price?symbol=${symbols}&apikey=${state.keys.twelve}`);
+        const data = await res.json();
+        
+        state.tickers.forEach(t => {
+          let val = "N/A";
+          if (data[t] && data[t].price) val = parseFloat(data[t].price).toFixed(2);
+          else if (data.price) val = parseFloat(data.price).toFixed(2);
+          state.prices[t] = val;
+        });
+        
+        renderPortfolio();
+        if(state.keys.gemini && state.keys.claude) {
+          await runDualAIPipeline();
         }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        dot.className = "h-2.5 w-2.5 rounded-full bg-emerald-500 my-auto animate-pulse";
+      }
+    }
 
-        function renderTickers() {
-            const list = document.getElementById('ticker-list');
-            list.innerHTML = '';
-            tickers.forEach(t => {
-                list.innerHTML += `<span class="inline-flex items-center bg-slate-700 px-3 py-1 rounded-full text-xs font-bold">\${t}<button onclick="removeTicker('\${t}')" class="ml-2 text-red-400 font-black">×</button></span>`;
-            });
-            localStorage.setItem('tickers', JSON.stringify(tickers));
-            syncDataToWorker();
-        }
+    async function runDualAIPipeline() {
+      const container = document.getElementById('claudeAnalysis');
+      container.innerHTML = `<div class="flex gap-2 items-center"><span class="animate-spin">⏳</span> Engines processing cross-market insights...</div>`;
+      
+      let poolSummary = Object.entries(state.prices).map(([t, p]) => `${t}: $${p}`).join(', ');
 
-        function addTicker() {
-            const input = document.getElementById('new-ticker');
-            const t = input.value.trim().toUpperCase();
-            if(t && !tickers.includes(t)) { tickers.push(t); renderTickers(); input.value = ''; }
-        }
+      try {
+        // Phase 1: Gemini Web-Scouting Framework
+        const gemPrompt = `Scrape & compile top 3 high-impact news updates for this ticker pool: ${poolSummary}. Source from Bloomberg, Reuters, FT, and central European media. Output structural summaries.`;
+        const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.keys.gemini}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: gemPrompt }] }] })
+        });
+        const gemData = await gemRes.json();
+        const scouterContext = gemData.candidates[0].content.parts[0].text;
 
-        function removeTicker(t) { tickers = tickers.filter(item => item !== t); renderTickers(); }
+        // Phase 2: Claude High-Fidelity Portfolio Analysis
+        const claudePrompt = `Human: You are an elite quantitative multi-asset analyst. Review these real-time metrics [${poolSummary}] along with this scraped intelligence report: [${scouterContext}]. Provide a hyper-dense macro diagnostic strategy alert for the investor. Keep your breakdown concise under 4 sentences.`;
+        
+        const clRes = await fetch(`https://api.anthropic.com/v1/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': state.keys.claude,
+            'anthropic-version': '2023-06-01',
+            'dangerously-allow-the-browser': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 300,
+            messages: [{ role: 'user', content: claudePrompt }]
+          })
+        });
+        const clData = await clRes.json();
+        container.innerText = clData.content[0].text;
+      } catch (err) {
+        container.innerText = "Dual-Engine Pipeline bypass fault: " + err.message;
+      }
+    }
 
-        function syncDataToWorker() {
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                    type: 'SYNC_CONFIG',
-                    geminiKey: document.getElementById('gemini-key').value.trim(),
-                    marketKey: document.getElementById('market-key').value.trim(),
-                    tickers: tickers
-                });
-            }
-        }
+    function renderPortfolio() {
+      const grid = document.getElementById('stocksGrid');
+      grid.innerHTML = '';
+      if(state.tickers.length === 0) {
+        grid.innerHTML = `<div class="text-center text-slate-600 text-xs py-4 font-mono">No active tickers monitored.</div>`;
+        return;
+      }
+      state.tickers.forEach(t => {
+        const price = state.prices[t] || 'Loading...';
+        grid.innerHTML += `
+          <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center hover:border-slate-700 transition-all">
+            <div>
+              <div class="text-sm font-bold tracking-tight">${t}</div>
+              <div class="text-[10px] text-slate-500 font-mono uppercase">Global Tracking Asset</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-sm font-medium text-emerald-400">$${price}</span>
+              <button onclick="removeTicker('${t}')" class="p-1 bg-red-950/30 text-red-400 border border-red-900/40 text-xs rounded-lg font-bold w-6 h-6 flex items-center justify-center hover:bg-red-900/30">×</button>
+            </div>
+          </div>`;
+      });
+    }
 
-        async function registerServiceWorker() {
-            if ('serviceWorker' in navigator) {
-                try {
-                    const reg = await navigator.serviceWorker.register('sw.js');
-                    log("⚙️ Service Worker safely registered.");
-                    Notification.requestPermission();
-                } catch (err) {
-                    log(`❌ Registration failed: \${err.message}`);
-                }
-            }
-        }
+    function openModal() {
+      const m = document.getElementById('addModal');
+      m.classList.remove('opacity-0', 'pointer-events-none');
+      document.getElementById('modalCard').classList.remove('translate-y-10');
+      renderSearchResults("");
+    }
 
-        function toggleEngine(active) {
-            document.getElementById('status-dot').className = active ? "h-3 w-3 rounded-full bg-emerald-500 animate-pulse" : "h-3 w-3 rounded-full bg-red-500 animate-pulse";
-            document.getElementById('btn-start').disabled = active;
-            document.getElementById('btn-stop').disabled = !active;
-            document.getElementById('btn-start').className = active ? "flex-1 bg-slate-700 text-slate-500 py-3 rounded-xl cursor-not-allowed text-sm font-bold" : "flex-1 bg-blue-500 text-white py-3 rounded-xl text-sm font-bold";
-            document.getElementById('btn-stop').className = !active ? "flex-1 bg-slate-700 text-slate-400 py-3 rounded-xl cursor-not-allowed text-sm font-bold" : "flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-bold";
-            
-            // Save current keys
-            localStorage.setItem('gemini-key', document.getElementById('gemini-key').value.trim());
-            localStorage.setItem('market-key', document.getElementById('market-key').value.trim());
-            syncDataToWorker();
+    function closeModal() {
+      const m = document.getElementById('addModal');
+      m.classList.add('opacity-0', 'pointer-events-none');
+      document.getElementById('modalCard').classList.add('translate-y-10');
+    }
 
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: active ? 'START_LOOP' : 'STOP_LOOP' });
-                log(active ? "🚀 Background monitoring loop active." : "🛑 Background framework paused.");
-            }
-        }
-    </script>
+    function debouncedSearch(val) {
+      clearTimeout(state.searchTimeout);
+      state.searchTimeout = setTimeout(() => {
+        renderSearchResults(val.trim().toUpperCase());
+      }, 350);
+    }
+
+    function renderSearchResults(query) {
+      const out = document.getElementById('searchResults');
+      out.innerHTML = '';
+      let targets = query ? popularStocks.filter(s => s.t.includes(query) || s.n.toUpperCase().includes(query)) : popularStocks;
+      
+      if(query && !popularStocks.some(s => s.t === query)) {
+        targets.unshift({ t: query, n: 'Custom Global Framework Target' });
+      }
+
+      targets.forEach(item => {
+        out.innerHTML += `
+          <div onclick="addTicker('${item.t}')" class="p-2 bg-slate-950 border border-slate-800 rounded-lg flex justify-between items-center cursor-pointer hover:border-purple-500 transition-all">
+            <div><span class="font-bold text-white">${item.t}</span> - <span class="text-slate-400 text-[11px]">${item.n}</span></div>
+            <span class="text-[10px] text-cyan-400 font-mono">➕ SELECT</span>
+          </div>`;
+      });
+    }
+
+    function addTicker(t) {
+      if(!state.tickers.includes(t)) {
+        state.tickers.push(t);
+        state.prices[t] = "Loading...";
+        localStorage.setItem('sw_pro_state', JSON.stringify(state));
+        renderPortfolio();
+        syncWorkerMemory();
+        refreshAll();
+      }
+      closeModal();
+    }
+
+    function removeTicker(t) {
+      state.tickers = state.tickers.filter(x => x !== t);
+      delete state.prices[t];
+      localStorage.setItem('sw_pro_state', JSON.stringify(state));
+      renderPortfolio();
+      syncWorkerMemory();
+    }
+  </script>
 </body>
 </html>
